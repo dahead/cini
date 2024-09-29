@@ -150,11 +150,12 @@ int read_value_from_file(const char *filename, const char *category, const char 
 }
 
 
+// help function
 void print_help() {
     printf("dh INI helper v.0.2 (29.04.2024)\n");
     printf("Usage:\n");
-    printf("  r  <filename> <category> <key>             - Reads the value of a key under a category\n");
-    printf("  w  <filename> <category> <key> <new_value> - Updates the value of a key under a category\n");
+    printf("  r/read  <filename> <category> <key>             - Reads the value of a key under a category\n");
+    printf("  w/write <filename> <category> <key> <new_value> - Updates the value of a key under a category\n");
 }
 
 int main(int argc, char *argv[]) {
