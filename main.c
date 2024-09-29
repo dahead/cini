@@ -53,8 +53,6 @@ int modify_value_in_file(const char *filename, const char *category, const char 
     rename("temp.txt", filename);
 }
 
-
-
 int read_value_from_file(const char *filename, const char *category, const char *key, char *value_out, size_t value_size) {
     FILE *file = fopen(filename, "r");
     if (!file) return -1;
