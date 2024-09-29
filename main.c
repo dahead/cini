@@ -1,22 +1,37 @@
+// =====================================================================================================================
 //
 // dh INI helper v.0.1 (29.04.2024)
 //
+// =====================================================================================================================
+
+// =====================================================================================================================
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
+// =====================================================================================================================
+
 #define MAX_LINE 1024
+
+// =====================================================================================================================
 
 int read_value_from_file(const char *filename, const char *category, const char *key, char *value_out, size_t value_size);
 int modify_value_in_file(const char *filename, const char *category, const char *key, const char *new_value);
 void list_keys_values(const char *filename, const char *category);
 void list_categories(const char *filename);
+void list_values(const char *filename);
+int main(int argc, char *argv[]);
+
+// =====================================================================================================================
 
 int modify_value_in_file(const char *filename, const char *category, const char *key, const char *new_value) {
     FILE *file = fopen(filename, "r");
-    if (!file) return -1;
+    if (!file) {
+        printf("Error: Could not open file.\n");
+        return -1;
+    }
 
     FILE *temp_file = fopen("temp.txt", "w");
     if (!temp_file) {
@@ -59,7 +74,10 @@ int modify_value_in_file(const char *filename, const char *category, const char 
 
 int read_value_from_file(const char *filename, const char *category, const char *key, char *value_out, size_t value_size) {
     FILE *file = fopen(filename, "r");
-    if (!file) return -1;
+    if (!file) {
+        printf("Error: Could not open file.\n");
+        return -1;
+    }
 
     char line[MAX_LINE];
     int in_category = 0;
@@ -141,7 +159,7 @@ void list_categories(const char *filename) {
 void list_values(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
-        printf("File not found.\n");
+        printf("Error: Could not open file.\n");
         return;
     }
 
@@ -184,18 +202,21 @@ int main(int argc, char *argv[]) {
     const char *key = argc > 4 ? argv[4] : NULL;
     const char *value = argc > 5 ? argv[5] : NULL;
 
+    // check if file exists
     struct stat buffer;
     if (stat(filename, &buffer) != 0) {
         printf("File does not exist: %s\n", filename);
         return -1;
     }
 
-    if (strcmp(command, "r") == 0) {
+    // read
+    if (strcmp(command, "r") == 0 || strcmp(command, "read") == 0) {
         if (category) {
             if (key) {
                 char value_out[256];
                 if (read_value_from_file(filename, category, key, value_out, sizeof(value_out)) == 0) {
-                    printf("Value: %s\n", value_out);
+                    // no output if success
+                    // printf("Value: %s\n", value_out);
                 } else {
                     printf("Key not found.\n");
                 }
@@ -207,12 +228,13 @@ int main(int argc, char *argv[]) {
         }
     }
     // write
-    else if (strcmp(command, "w") == 0) {
+    else if (strcmp(command, "w") || strcmp(command, "write") == 0) {
         if (category) {
             modify_value_in_file(filename, category, key, value);
-            printf("Value updated or category added.\n");
+            // not output
+            // printf("Updated.\n");
         } else {
-            printf("Category is required for write command.\n");
+            printf("Error: Category is required for write command.\n");
         }
     // list keys
     } else if (strcmp(command, "lk") == 0) {
