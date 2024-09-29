@@ -4,8 +4,6 @@
 //
 // =====================================================================================================================
 
-// =====================================================================================================================
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,9 +17,7 @@
 
 int read_value_from_file(const char *filename, const char *category, const char *key, char *value_out, size_t value_size);
 int modify_value_in_file(const char *filename, const char *category, const char *key, const char *new_value);
-void list_keys_values(const char *filename, const char *category);
-void list_categories(const char *filename);
-void list_values(const char *filename);
+void print_help();
 int main(int argc, char *argv[]);
 
 // =====================================================================================================================
@@ -80,114 +76,85 @@ int read_value_from_file(const char *filename, const char *category, const char 
     }
 
     char line[MAX_LINE];
-    int in_category = 0;
+    int in_category = 0, found_value = 0;
+
+    // Check if both category and key are NULL to list all values
+    if (category == NULL && key == NULL) {
+        while (fgets(line, sizeof(line), file)) {
+            if (line[0] == '[') {
+                in_category = 1; // New category found
+            } else if (in_category && strchr(line, '=')) {
+                printf("%s", line); // Ausgabe im Format [Category] Key=Value
+            }
+        }
+        fclose(file);
+        return 0; // Success, all values listed
+    }
+
+    // Reset file pointer for further checks
+    rewind(file);
+
+    // Check if category is not NULL and key is NULL
+    if (category != NULL && key == NULL) {
+        while (fgets(line, sizeof(line), file)) {
+            if (line[0] == '[') {
+                in_category = (strstr(line, category) != NULL) ? 1 : 0;
+            } else if (in_category && strchr(line, '=')) {
+                printf("%s", line); // Ausgabe aller Keys und Values der Kategorie
+                found_value = 1;
+            }
+        }
+        fclose(file);
+        return found_value ? 0 : -1; // Return success or failure if no values found
+    }
+
+    // Reset file pointer to read values based on category and key
+    rewind(file);
 
     while (fgets(line, sizeof(line), file)) {
         if (line[0] == '[') {
-            if (strstr(line, category)) {
-                in_category = 1;
-            } else {
-                in_category = 0;
-            }
+            in_category = (category && strstr(line, category)) ? 1 : 0;
         }
 
-        if (in_category && strstr(line, key)) {
-            char *key_part = strtok(line, "=");
-            char *value_part = strtok(NULL, "\n");
-            if (key_part && value_part && strcmp(key_part, key) == 0) {
-                strncpy(value_out, value_part, value_size - 1);
-                value_out[value_size - 1] = '\0';
-                fclose(file);
-                return 0;
-            }
-        }
-    }
-
-    fclose(file);
-    return -1;
-}
-
-void list_keys_values(const char *filename, const char *category) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        printf("Error: Could not open file.\n");
-        return;
-    }
-
-    char line[MAX_LINE];
-    int in_category = 0;
-
-    while (fgets(line, sizeof(line), file)) {
-        if (line[0] == '[') {
-            if (category) {
-                if (strncmp(line + 1, category, strlen(category)) == 0 && line[strlen(category) + 1] == ']') {
-                    in_category = 1; // Category found
-                } else {
-                    in_category = 0; // New category found
+        if (in_category) {
+            if (key) {
+                if (strstr(line, key)) {
+                    char *key_part = strtok(line, "=");
+                    char *value_part = strtok(NULL, "\n");
+                    if (key_part && value_part && strcmp(key_part, key) == 0) {
+                        if (value_out) {
+                            strncpy(value_out, value_part, value_size - 1);
+                            value_out[value_size - 1] = '\0';
+                        }
+                        printf("%s\n", value_part); // Ausgabe des Wertes
+                        found_value = 1;
+                    }
                 }
             } else {
-                in_category = 1; // No category specified, consider it as in-category
+                if (strchr(line, '=')) {
+                    printf("%s", line); // Ausgabe aller Keys und Values in der Kategorie
+                    found_value = 1;
+                }
             }
-        } else if (in_category && strchr(line, '=')) {
-            printf("%s", line); // Print only keys and values
         }
     }
 
     fclose(file);
+
+    if (!found_value) {
+        printf("Key not found.\n"); // Fehlerausgabe
+        return -1;
+    }
+
+    return 0;
 }
 
-void list_categories(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        printf("Error: Could not open file.\n");
-        return;
-    }
-
-    char line[MAX_LINE];
-    while (fgets(line, sizeof(line), file)) {
-        if (line[0] == '[') {
-            char *start = strchr(line, '[') + 1;
-            char *end = strchr(line, ']');
-            if (end) *end = '\0';
-            printf("%s\n", start);
-        }
-    }
-
-    fclose(file);
-}
-
-void list_values(const char *filename) {
-    FILE *file = fopen(filename, "r");
-    if (!file) {
-        printf("Error: Could not open file.\n");
-        return;
-    }
-
-    char line[MAX_LINE];
-    int in_category = 0;
-
-    while (fgets(line, sizeof(line), file)) {
-        if (line[0] == '[') {
-            if (strchr(line, ']')) {
-                in_category = 1;
-            } else {
-                in_category = 0;
-            }
-        } else if (in_category && strchr(line, '=')) {
-            printf("%s", line);
-        }
-    }
-
-    fclose(file);
-}
 
 void print_help() {
-    printf("dh INI helper v.0.1 (29.04.2024)\n");
+    printf("dh INI helper v.0.2 (29.04.2024)\n");
     printf("Usage:\n");
     printf("  r  <filename> <category> <key>             - Reads the value of a key under a category\n");
     printf("  w  <filename> <category> <key> <new_value> - Updates the value of a key under a category\n");
-    printf("  lk <filename> <category>                   - Lists all keys and values under a category (or all categories if none is given)\n");
-    printf("  lc <filename>                              - Lists all categories in the file\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -196,6 +163,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    // parse arguments
     const char *command = argv[1];
     const char *filename = argv[2];
     const char *category = argc > 3 ? argv[3] : NULL;
@@ -211,40 +179,15 @@ int main(int argc, char *argv[]) {
 
     // read
     if (strcmp(command, "r") == 0 || strcmp(command, "read") == 0) {
-        if (category) {
-            if (key) {
-                char value_out[256];
-                if (read_value_from_file(filename, category, key, value_out, sizeof(value_out)) == 0) {
-                    // no output if success
-                    // printf("Value: %s\n", value_out);
-                } else {
-                    printf("Key not found.\n");
-                }
-            } else {
-                list_keys_values(filename, category);
-            }
-        } else {
-            list_values(filename);
-        }
+        read_value_from_file(filename, category, key, NULL, 0);
     }
     // write
-    else if (strcmp(command, "w") || strcmp(command, "write") == 0) {
+    else if (strcmp(command, "w") == 0 || strcmp(command, "write") == 0) {
         if (category) {
             modify_value_in_file(filename, category, key, value);
-            // not output
-            // printf("Updated.\n");
         } else {
             printf("Error: Category is required for write command.\n");
         }
-    // list keys
-    } else if (strcmp(command, "lk") == 0) {
-        list_keys_values(filename, category);
-    // list categories
-    } else if (strcmp(command, "lc") == 0) {
-        list_categories(filename);
-    // list values
-    } else if (strcmp(command, "lv") == 0) {
-        list_values(filename);
     } else {
         print_help();
     }
