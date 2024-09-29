@@ -142,7 +142,7 @@ int read_value_from_file(const char *filename, const char *category, const char 
     fclose(file);
 
     if (!found_value) {
-        printf("Key not found.\n"); // Fehlerausgabe
+        printf("Key '%s' not found.\n", key); // Fehlerausgabe
         return -1;
     }
 
